@@ -1,13 +1,13 @@
 import React from 'react';
-import { AlertCircle } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 
 export default function SimulationDisclaimer() {
   return (
-    <div className="bg-amber-500 text-slate-950 px-4 py-2 text-xs md:text-sm font-medium flex items-center justify-center gap-2 border-b border-amber-600 no-print">
-      <AlertCircle className="w-4 h-4 shrink-0 text-slate-950" />
-      <span>
-        <strong>ACADEMIC SIMULATION:</strong> This is an educational demonstration. No real banks, real UPI handles, or real funds are processed.
-      </span>
+    <div className="bg-slate-900 text-slate-300 px-4 py-1.5 text-xs font-mono flex items-center justify-center gap-2 border-b border-slate-800 no-print">
+      <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+      <span className="text-slate-200 font-semibold">Sandbox Simulation</span>
+      <span className="text-slate-500">•</span>
+      <span className="text-slate-400">Mock UPI & Banking Switch Rails</span>
     </div>
   );
 }

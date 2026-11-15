@@ -44,7 +44,7 @@ export default function ReceiptModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fade-in no-print">
       <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-6 relative border border-slate-100 max-h-[92vh] overflow-y-auto">
         <button
           onClick={onClose}
@@ -55,25 +55,33 @@ export default function ReceiptModal({
 
         {/* Printable Receipt Content */}
         <div id="printable-receipt" className="text-center pt-2">
-          {/* Status Icon */}
-          <div
-            className={`w-14 h-14 rounded-full mx-auto flex items-center justify-center mb-3 shadow-md ${
-              isSuccess
-                ? 'bg-emerald-100 text-emerald-600 shadow-emerald-100'
-                : isReversed
-                ? 'bg-amber-100 text-amber-600 shadow-amber-100'
-                : isPending
-                ? 'bg-blue-100 text-blue-600 shadow-blue-100'
-                : 'bg-rose-100 text-rose-600 shadow-rose-100'
-            }`}
-          >
-            {isSuccess ? (
-              <CheckCircle2 className="w-8 h-8" />
-            ) : isPending ? (
-              <Clock className="w-8 h-8" />
-            ) : (
-              <XCircle className="w-8 h-8" />
+          {/* Status Icon with Celebratory Sonar Animation */}
+          <div className="relative flex items-center justify-center w-16 h-16 mx-auto mb-3">
+            {isSuccess && (
+              <span className="absolute inline-flex h-16 w-16 rounded-full bg-emerald-400 opacity-30 animate-ping"></span>
             )}
+            {!isSuccess && !isPending && !isReversed && (
+              <span className="absolute inline-flex h-16 w-16 rounded-full bg-rose-400 opacity-30 animate-ping"></span>
+            )}
+            <div
+              className={`relative w-14 h-14 rounded-2xl mx-auto flex items-center justify-center shadow-lg transition-transform ${
+                isSuccess
+                  ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-emerald-500/30'
+                  : isReversed
+                  ? 'bg-gradient-to-br from-amber-500 to-amber-600 text-white shadow-amber-500/30'
+                  : isPending
+                  ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-blue-500/30'
+                  : 'bg-gradient-to-br from-rose-500 to-rose-600 text-white shadow-rose-500/30 animate-shake'
+              }`}
+            >
+              {isSuccess ? (
+                <CheckCircle2 className="w-8 h-8 animate-pulse" />
+              ) : isPending ? (
+                <Clock className="w-8 h-8 animate-spin" style={{ animationDuration: '6s' }} />
+              ) : (
+                <XCircle className="w-8 h-8" />
+              )}
+            </div>
           </div>
 
           <span
