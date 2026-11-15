@@ -9,7 +9,7 @@ export const config = {
   supabaseUrl: process.env.SUPABASE_URL || '',
   supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || '',
   corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:3000',
-  defaultWalletBalance: 10000.0,
+  defaultWalletBalance: 0.0, // New accounts start with ₹0 per specification
   maxDailyTransactionLimit: 50000.0,
   maxSingleTransactionLimit: 25000.0,
 };

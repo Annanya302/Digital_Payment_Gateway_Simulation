@@ -11,5 +11,6 @@ router.use(requireAdmin);
 router.get('/dashboard', adminController.getDashboard);
 router.get('/users', adminController.getUsers);
 router.get('/transactions', adminController.getTransactions);
+router.get('/audit-logs', adminController.getAuditLogs);
 
 export default router;

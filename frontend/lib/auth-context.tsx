@@ -1,30 +1,84 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { User, Wallet } from './types';
+import { io, Socket } from 'socket.io-client';
+import { User, Wallet, BankAccount } from './types';
 import { api } from './api';
 
 interface AuthContextType {
   user: User | null;
   wallet: Wallet | null;
+  bankAccount: BankAccount | null;
+  bankAccounts: BankAccount[];
   token: string | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<User>;
   register: (payload: any) => Promise<User>;
   logout: () => void;
   refreshProfile: () => Promise<void>;
+  socket: Socket | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000';
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [wallet, setWallet] = useState<Wallet | null>(null);
+  const [bankAccount, setBankAccount] = useState<BankAccount | null>(null);
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [socket, setSocket] = useState<Socket | null>(null);
+  const socketRef = useRef<Socket | null>(null);
   const router = useRouter();
-  const pathname = usePathname();
+
+  // Socket initialization
+  useEffect(() => {
+    const s = io(SOCKET_URL, {
+      transports: ['websocket', 'polling'],
+      autoConnect: true,
+    });
+    socketRef.current = s;
+    setSocket(s);
+
+    return () => {
+      s.disconnect();
+    };
+  }, []);
+
+  // When user changes, join socket channel
+  useEffect(() => {
+    if (socketRef.current && user) {
+      socketRef.current.emit('join_user', user.user_id);
+      if (user.role === 'admin') {
+        socketRef.current.emit('join_admin');
+      }
+
+      // Real-time balance update listener
+      const handleBalanceUpdate = (data: any) => {
+        if (data.walletBalance !== undefined) {
+          setWallet((prev) => (prev ? { ...prev, balance: data.walletBalance } : prev));
+        }
+        if (data.bankBalance !== undefined) {
+          setBankAccount((prev) => (prev ? { ...prev, balance: data.bankBalance } : prev));
+          setBankAccounts((prev) =>
+            prev.map((acc) =>
+              acc.is_primary ? { ...acc, balance: data.bankBalance } : acc
+            )
+          );
+        }
+      };
+
+      socketRef.current.on('balance_updated', handleBalanceUpdate);
+
+      return () => {
+        socketRef.current?.off('balance_updated', handleBalanceUpdate);
+      };
+    }
+  }, [user]);
 
   useEffect(() => {
     const savedToken = localStorage.getItem('token');
@@ -35,11 +89,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .then((data) => {
           setUser(data.user);
           if (data.wallet) setWallet(data.wallet);
+          if (data.bankAccount) setBankAccount(data.bankAccount);
+          if (data.bankAccounts) setBankAccounts(data.bankAccounts);
         })
         .catch(() => {
           localStorage.removeItem('token');
           setUser(null);
           setWallet(null);
+          setBankAccount(null);
+          setBankAccounts([]);
           setToken(null);
         })
         .finally(() => {
@@ -56,6 +114,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setToken(data.token);
     setUser(data.user);
     if (data.wallet) setWallet(data.wallet);
+    if (data.bankAccount) setBankAccount(data.bankAccount);
     return data.user;
   };
 
@@ -65,6 +124,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setToken(data.token);
     setUser(data.user);
     if (data.wallet) setWallet(data.wallet);
+    if (data.bankAccount) setBankAccount(data.bankAccount);
     return data.user;
   };
 
@@ -72,6 +132,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem('token');
     setUser(null);
     setWallet(null);
+    setBankAccount(null);
+    setBankAccounts([]);
     setToken(null);
     router.push('/login');
   };
@@ -81,6 +143,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const data = await api.getMe();
       setUser(data.user);
       if (data.wallet) setWallet(data.wallet);
+      if (data.bankAccount) setBankAccount(data.bankAccount);
+      if (data.bankAccounts) setBankAccounts(data.bankAccounts);
     } catch (err) {
       console.error('Failed to refresh profile', err);
     }
@@ -91,12 +155,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       value={{
         user,
         wallet,
+        bankAccount,
+        bankAccounts,
         token,
         isLoading,
         login,
         register,
         logout,
         refreshProfile,
+        socket,
       }}
     >
       {children}

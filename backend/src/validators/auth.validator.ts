@@ -6,6 +6,7 @@ export const registerSchema = z.object({
   mobile: z.string().min(10, 'Mobile must be at least 10 digits').max(15),
   password: z.string().min(6, 'Password must be at least 6 characters'),
   pin: z.string().length(4, 'PIN must be exactly 4 digits').regex(/^\d{4}$/, 'PIN must only contain digits'),
+  bankCode: z.enum(['SBI', 'HDFC', 'ICICI', 'AXIS', 'PNB']).optional(),
 });
 
 export const loginSchema = z.object({

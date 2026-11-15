@@ -12,6 +12,7 @@ export class PaymentController {
         amount: Number(req.body.amount),
         paymentMode: req.body.paymentMode,
         pin: req.body.pin,
+        senderBankCode: req.body.senderBankCode,
         idempotencyKey,
         simulatedOutcome: req.body.simulatedOutcome,
         cardDetails: req.body.cardDetails,
@@ -40,6 +41,7 @@ export class PaymentController {
         amount: Number(req.body.amount),
         paymentMode: req.body.paymentMode,
         pin: req.body.pin,
+        senderBankCode: req.body.senderBankCode,
         idempotencyKey,
         simulatedOutcome: req.body.simulatedOutcome,
         cardDetails: req.body.cardDetails,
@@ -52,6 +54,42 @@ export class PaymentController {
           receipt.status === 'SUCCESS'
             ? 'Merchant payment processed successfully'
             : `Merchant payment failed: ${receipt.failureReason}`,
+        data: receipt,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  public async reversePayment(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const paymentId = req.params.id as string;
+      const isAdmin = req.user!.role === 'admin';
+      const receipt = await paymentService.reverseTransaction({
+        paymentId,
+        reason: req.body.reason,
+        requestingUserId: req.user!.userId,
+        isAdmin,
+      });
+
+      res.status(200).json({
+        success: true,
+        message: 'Transaction reversal completed successfully',
+        data: receipt,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  public async reconcilePayment(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const paymentId = req.params.id as string;
+      const receipt = await paymentService.reconcilePayment(paymentId);
+
+      res.status(200).json({
+        success: true,
+        message: 'Transaction reconciled safely',
         data: receipt,
       });
     } catch (error) {

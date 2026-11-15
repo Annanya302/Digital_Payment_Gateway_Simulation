@@ -14,6 +14,9 @@ import {
   Users,
   CheckCircle2,
   AlertTriangle,
+  Building2,
+  Activity,
+  ArrowLeftRight,
 } from 'lucide-react';
 
 export default function LandingPage() {
@@ -23,25 +26,24 @@ export default function LandingPage() {
       <section className="text-center space-y-6 pt-4 pb-8">
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-semibold shadow-sm">
           <Cpu className="w-4 h-4 text-indigo-600" />
-          <span>Interactive Fintech Engineering Simulation</span>
+          <span>PaySim • Multi-Bank Payment Gateway & Transaction Processing Simulator</span>
         </div>
 
         <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight leading-tight">
-          Digital Payment Gateway <br className="hidden sm:inline" />
-          <span className="text-indigo-600">Simulation Platform</span>
+          PaySim <br className="hidden sm:inline" />
+          <span className="text-indigo-600">Payment Gateway Platform</span>
         </h1>
 
         <p className="max-w-2xl mx-auto text-base sm:text-lg text-slate-600 leading-relaxed">
-          An educational full-stack simulator demonstrating how digital payments are initiated,
-          validated, authorized via simulated banking switches (UPI & Card networks), settled atomically,
-          and audited in real-time.
+          An enterprise-grade full-stack banking & payment gateway simulation demonstrating how digital transactions are
+          initiated, authenticated via demo PIN, routed across multi-bank switches (SBI, HDFC, ICICI, Axis, PNB), atomically settled, and audited in real-time.
         </p>
 
         {/* Boundary Notice */}
         <div className="max-w-xl mx-auto p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs sm:text-sm flex items-start gap-3 text-left shadow-sm">
           <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
           <div>
-            <strong className="font-bold">Strict Educational Simulation:</strong> This environment connects to a simulated Bank and UPI switch. No real currency is transferred, and no real credit card or bank credentials are ever required.
+            <strong className="font-bold">Strict Educational Simulation:</strong> This environment connects to simulated core-banking systems and NPCI/Card rails. No real currency is transferred, and no real credit card or bank credentials are ever required. All accounts start with ₹0.00.
           </div>
         </div>
 
@@ -58,8 +60,39 @@ export default function LandingPage() {
             href="/register"
             className="px-6 py-3.5 bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 font-bold text-sm rounded-2xl shadow-sm transition-all"
           >
-            Create Test Account
+            Register New Account (₹0 Demo)
           </Link>
+        </div>
+      </section>
+
+      {/* Simulated Core Banks Banner */}
+      <section className="bg-slate-50 border border-slate-200 rounded-3xl p-6 sm:p-8">
+        <div className="text-center mb-6">
+          <h2 className="text-base font-bold text-slate-900 flex items-center justify-center gap-2">
+            <Building2 className="w-5 h-5 text-indigo-600" />
+            <span>Simulated Banking Switch Network</span>
+          </h2>
+          <p className="text-xs text-slate-500 mt-1">
+            Simulates interbank (NEFT/IMPS/UPI) and intra-bank transactions across 5 major core banking systems
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center">
+          {[
+            { name: 'State Bank of India', code: 'SBI', ifsc: 'SBIN0001234' },
+            { name: 'HDFC Bank', code: 'HDFC', ifsc: 'HDFC0004567' },
+            { name: 'ICICI Bank', code: 'ICICI', ifsc: 'ICIC0007890' },
+            { name: 'Axis Bank', code: 'AXIS', ifsc: 'UTIB0002468' },
+            { name: 'Punjab National Bank', code: 'PNB', ifsc: 'PUNB0001357' },
+          ].map((b) => (
+            <div key={b.code} className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
+              <span className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-700 font-black text-xs flex items-center justify-center mx-auto mb-2">
+                {b.code}
+              </span>
+              <p className="font-bold text-slate-900 text-xs">{b.name}</p>
+              <p className="font-mono text-[10px] text-slate-400 mt-0.5">{b.ifsc}</p>
+            </div>
+          ))}
         </div>
       </section>
 
@@ -78,14 +111,14 @@ export default function LandingPage() {
             <div className="flex items-center justify-between mb-2">
               <span className="font-bold text-sm text-slate-900">Customer Account (Alex Rivera)</span>
               <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold">
-                Customer
+                Customer (HDFC)
               </span>
             </div>
             <div className="space-y-1 text-xs text-slate-600">
               <p>Email: <code className="bg-slate-200 px-1 py-0.5 rounded text-slate-900 font-bold">alex@example.com</code></p>
               <p>Password: <code className="bg-slate-200 px-1 py-0.5 rounded text-slate-900 font-bold">Password123!</code></p>
               <p>Transaction PIN: <code className="bg-slate-200 px-1 py-0.5 rounded text-slate-900 font-bold">1234</code></p>
-              <p>Simulated Balance: <strong className="text-emerald-700">₹25,000.00</strong></p>
+              <p>Simulated Balance: <strong className="text-emerald-700">₹25,000.00</strong> (HDFC Bank: ₹50,000.00)</p>
             </div>
             <Link
               href="/login?email=alex@example.com"
@@ -99,14 +132,14 @@ export default function LandingPage() {
             <div className="flex items-center justify-between mb-2">
               <span className="font-bold text-sm text-slate-900">Administrator Account</span>
               <span className="text-[10px] bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full font-bold">
-                Admin
+                Admin (Monitoring Only)
               </span>
             </div>
             <div className="space-y-1 text-xs text-slate-600">
               <p>Email: <code className="bg-slate-200 px-1 py-0.5 rounded text-slate-900 font-bold">admin@paymentgateway.com</code></p>
               <p>Password: <code className="bg-slate-200 px-1 py-0.5 rounded text-slate-900 font-bold">AdminPass123!</code></p>
               <p>Transaction PIN: <code className="bg-slate-200 px-1 py-0.5 rounded text-slate-900 font-bold">1234</code></p>
-              <p>Capability: <strong className="text-slate-800">Global Monitoring & Audit</strong></p>
+              <p>Capability: <strong className="text-slate-800">Global Monitoring & Bank Switch Controls</strong></p>
             </div>
             <Link
               href="/login?email=admin@paymentgateway.com"
@@ -118,55 +151,39 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Workflow Diagram & Steps */}
+      {/* 11-Stage Processing Pipeline Workflow */}
       <section className="space-y-6">
         <div className="text-center space-y-2">
-          <h2 className="text-2xl font-black text-slate-900">Payment Lifecycle Workflow</h2>
+          <h2 className="text-2xl font-black text-slate-900">11-Stage Payment Processing Engine</h2>
           <p className="text-xs text-slate-500 max-w-lg mx-auto">
-            From checkout initiation to bank authorization switch and atomic ledger settlement.
+            PaySim enforces an explicit 11-stage pipeline for every payment with cryptographic logging and atomic double-entry bookkeeping.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="p-5 bg-white border border-slate-200 rounded-2xl shadow-sm space-y-2">
-            <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 font-bold flex items-center justify-center text-sm">
-              1
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {[
+            { num: 1, title: 'Payment Initiation', desc: 'Client submits amount, rails, recipient & idempotency token.' },
+            { num: 2, title: 'Request Validation', desc: 'Validates positive amount, payment mode schema, and limits.' },
+            { num: 3, title: 'Recipient Verification', desc: 'Verifies recipient user or verified merchant exists and is active.' },
+            { num: 4, title: 'Demo PIN Authentication', desc: 'Verifies bcrypt-hashed 4-digit transaction PIN.' },
+            { num: 5, title: 'Gateway Processing', desc: 'Allocates unique reference ID and initiates gateway processing.' },
+            { num: 6, title: 'Bank Switch Routing', desc: 'Routes to sender & receiver core banks (SBI, HDFC, ICICI, etc.).' },
+            { num: 7, title: 'Balance Verification', desc: 'Ensures sender has sufficient funds without trusting frontend.' },
+            { num: 8, title: 'Authorization', desc: 'Simulated bank switch grants authorization or declines.' },
+            { num: 9, title: 'Atomic Debit & Credit', desc: 'Atomic ledger updates balances without loss or duplication.' },
+            { num: 10, title: 'Status Update', desc: 'Finalizes transaction status (SUCCESS, FAILED, PENDING).' },
+            { num: 11, title: 'Real-Time Notification', desc: 'Dispatches Socket.IO events to sender, receiver & admin.' },
+          ].map((st) => (
+            <div key={st.num} className="p-3.5 bg-white border border-slate-200 rounded-2xl shadow-sm flex items-start gap-3">
+              <span className="w-7 h-7 rounded-xl bg-indigo-50 text-indigo-700 font-bold text-xs flex items-center justify-center shrink-0">
+                {st.num}
+              </span>
+              <div>
+                <h3 className="font-bold text-xs text-slate-900">{st.title}</h3>
+                <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">{st.desc}</p>
+              </div>
             </div>
-            <h3 className="font-bold text-sm text-slate-900">Initiate & Validate</h3>
-            <p className="text-xs text-slate-500">
-              User enters amount, selects Wallet, UPI, or Card mode, and enters secure 4-digit PIN.
-            </p>
-          </div>
-
-          <div className="p-5 bg-white border border-slate-200 rounded-2xl shadow-sm space-y-2">
-            <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 font-bold flex items-center justify-center text-sm">
-              2
-            </div>
-            <h3 className="font-bold text-sm text-slate-900">Bank/UPI Switch</h3>
-            <p className="text-xs text-slate-500">
-              Request passes to simulated NPCI/Card rails, generating APPROVED, DECLINED, or TIMEOUT outcomes.
-            </p>
-          </div>
-
-          <div className="p-5 bg-white border border-slate-200 rounded-2xl shadow-sm space-y-2">
-            <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 font-bold flex items-center justify-center text-sm">
-              3
-            </div>
-            <h3 className="font-bold text-sm text-slate-900">Atomic Settlement</h3>
-            <p className="text-xs text-slate-500">
-              If approved, balances are atomically debited/credited with strict negative-balance protection.
-            </p>
-          </div>
-
-          <div className="p-5 bg-white border border-slate-200 rounded-2xl shadow-sm space-y-2">
-            <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 font-bold flex items-center justify-center text-sm">
-              4
-            </div>
-            <h3 className="font-bold text-sm text-slate-900">Receipt & Alerts</h3>
-            <p className="text-xs text-slate-500">
-              Generates an immutable receipt, updates user ledger, and dispatches in-app notifications.
-            </p>
-          </div>
+          ))}
         </div>
       </section>
 
@@ -178,29 +195,29 @@ export default function LandingPage() {
             <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
               <Zap className="w-5 h-5" />
             </div>
-            <h3 className="font-bold text-base text-slate-900">P2P & Merchant Payments</h3>
+            <h3 className="font-bold text-base text-slate-900">Multi-Bank Routing & P2P</h3>
             <p className="text-xs text-slate-500 leading-relaxed">
-              Transfer funds instantly to any registered user by email or mobile, or check out with verified simulated merchants like Amazon India, Swiggy, and Flipkart.
+              Transfer funds across SBI, HDFC, ICICI, Axis Bank, and PNB accounts with automated intra-bank vs inter-bank detection and IFSC verification.
             </p>
           </div>
 
           <div className="p-6 bg-white border border-slate-200 rounded-2xl shadow-sm space-y-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-              <RotateCcw className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+              <ArrowLeftRight className="w-5 h-5" />
             </div>
-            <h3 className="font-bold text-base text-slate-900">Automated Refunds</h3>
+            <h3 className="font-bold text-base text-slate-900">Controlled Reversals & Refunds</h3>
             <p className="text-xs text-slate-500 leading-relaxed">
-              Validate refund eligibility, prevent double-refunds or excessive refunds, and atomically restore refunded balances back into the user wallet.
+              Controlled transaction reversals (REVERSAL ledger entry) when debits occur without credit, plus merchant automated refund workflows.
             </p>
           </div>
 
           <div className="p-6 bg-white border border-slate-200 rounded-2xl shadow-sm space-y-3">
             <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-              <ShieldCheck className="w-5 h-5" />
+              <Activity className="w-5 h-5" />
             </div>
-            <h3 className="font-bold text-base text-slate-900">Admin Audit Center</h3>
+            <h3 className="font-bold text-base text-slate-900">Monitoring-Only Admin Center</h3>
             <p className="text-xs text-slate-500 leading-relaxed">
-              Inspect total transaction volume, user registries, detailed failure reasons, simulator response codes, and system throughput.
+              Strictly isolated admin dashboard with database-driven metrics, bank switch health toggles, hourly transaction volume, and immutable audit logs.
             </p>
           </div>
         </div>
@@ -211,10 +228,10 @@ export default function LandingPage() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-800 pb-6">
           <div>
             <h2 className="text-xl font-bold">Project Team & Contributions</h2>
-            <p className="text-xs text-slate-400 mt-1">Digital Payment Gateway Simulation Engineering Team</p>
+            <p className="text-xs text-slate-400 mt-1">PaySim Engineering Team • Academic Project 2026</p>
           </div>
           <div className="px-3 py-1 rounded-full bg-slate-800 text-slate-300 text-xs font-semibold">
-            Academic Project 2026
+            PaySim v2.0
           </div>
         </div>
 

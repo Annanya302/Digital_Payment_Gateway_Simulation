@@ -74,6 +74,52 @@ class ApiClient {
     return this.request<any>('/wallet/transactions');
   }
 
+  // --- Banks & Bank Accounts ---
+  getBanks() {
+    return this.request<any>('/banks');
+  }
+
+  getUserBankAccounts() {
+    return this.request<any>('/banks/accounts');
+  }
+
+  linkBankAccount(payload: { bankCode: string; accountType?: string }) {
+    return this.request<any>('/banks/accounts', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  setPrimaryBankAccount(accountId: string) {
+    return this.request<any>(`/banks/accounts/${accountId}/primary`, {
+      method: 'PATCH',
+    });
+  }
+
+  topUpBankAccount(accountId: string, amount: number) {
+    return this.request<any>(`/banks/accounts/${accountId}/topup`, {
+      method: 'POST',
+      body: JSON.stringify({ amount }),
+    });
+  }
+
+  checkBankAccountBalance(accountId: string, pin: string) {
+    return this.request<{ balance: number; verified: boolean; bankName: string; accountNumber: string }>(
+      `/banks/accounts/${accountId}/check-balance`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ pin }),
+      }
+    );
+  }
+
+  updateBankHealth(bankCode: string, status: string) {
+    return this.request<any>(`/banks/${bankCode}/health`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    });
+  }
+
   // --- Payments ---
   sendMoney(payload: any) {
     return this.request<any>('/payments/send', {
@@ -86,6 +132,19 @@ class ApiClient {
     return this.request<any>('/payments/merchant', {
       method: 'POST',
       body: JSON.stringify(payload),
+    });
+  }
+
+  reversePayment(paymentId: string, reason?: string) {
+    return this.request<any>(`/payments/${paymentId}/reverse`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+  }
+
+  reconcilePayment(paymentId: string) {
+    return this.request<any>(`/payments/${paymentId}/reconcile`, {
+      method: 'POST',
     });
   }
 
@@ -162,6 +221,16 @@ class ApiClient {
       }
     });
     return this.request<any>(`/admin/transactions?${query.toString()}`);
+  }
+
+  getAdminAuditLogs(params: Record<string, any> = {}) {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([key, val]) => {
+      if (val !== undefined && val !== null && val !== '') {
+        query.append(key, String(val));
+      }
+    });
+    return this.request<any>(`/admin/audit-logs?${query.toString()}`);
   }
 }
 

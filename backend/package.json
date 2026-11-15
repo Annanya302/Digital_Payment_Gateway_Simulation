@@ -10,7 +10,14 @@
     "test": "vitest run",
     "test:watch": "vitest"
   },
-  "keywords": ["payment-gateway", "simulation", "upi", "fintech", "express", "typescript"],
+  "keywords": [
+    "payment-gateway",
+    "simulation",
+    "upi",
+    "fintech",
+    "express",
+    "typescript"
+  ],
   "author": "Ankur, Atul, Anamay, Annanya",
   "license": "ISC",
   "dependencies": {
@@ -21,6 +28,7 @@
     "express": "^4.21.2",
     "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.2",
+    "socket.io": "^4.8.4",
     "uuid": "^10.0.0",
     "zod": "^3.24.1"
   },

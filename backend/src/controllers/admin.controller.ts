@@ -45,6 +45,25 @@ export class AdminController {
       next(error);
     }
   }
+
+  public async getAuditLogs(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { eventType, search, page, limit } = req.query;
+      const result = await adminService.getAuditLogs({
+        eventType: eventType as string,
+        search: search as string,
+        page: page ? parseInt(page as string, 10) : 1,
+        limit: limit ? parseInt(limit as string, 10) : 20,
+      });
+
+      res.status(200).json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const adminController = new AdminController();

@@ -3,8 +3,17 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { UserPlus, Mail, Lock, Phone, User, KeyRound, AlertCircle, ArrowRight } from 'lucide-react';
+import { UserPlus, Mail, Lock, Phone, User, KeyRound, AlertCircle, Building2, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../../lib/auth-context';
+import { BankCode } from '../../lib/types';
+
+const SIMULATED_BANKS: { code: BankCode; name: string; ifsc: string; color: string }[] = [
+  { code: 'SBI', name: 'State Bank of India (SBI)', ifsc: 'SBIN0001234', color: 'text-blue-700' },
+  { code: 'HDFC', name: 'HDFC Bank', ifsc: 'HDFC0004567', color: 'text-sky-700' },
+  { code: 'ICICI', name: 'ICICI Bank', ifsc: 'ICIC0007890', color: 'text-orange-700' },
+  { code: 'AXIS', name: 'Axis Bank', ifsc: 'UTIB0002468', color: 'text-pink-700' },
+  { code: 'PNB', name: 'Punjab National Bank (PNB)', ifsc: 'PUNB0001357', color: 'text-yellow-700' },
+];
 
 export default function RegisterPage() {
   const { register } = useAuth();
@@ -16,6 +25,7 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [pin, setPin] = useState('');
+  const [bankCode, setBankCode] = useState<BankCode>('HDFC');
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,6 +53,7 @@ export default function RegisterPage() {
         mobile,
         password,
         pin,
+        bankCode,
       });
       router.push('/dashboard');
     } catch (err: any) {
@@ -59,9 +70,9 @@ export default function RegisterPage() {
           <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto mb-3">
             <UserPlus className="w-6 h-6" />
           </div>
-          <h1 className="text-2xl font-bold text-slate-900">Create Account</h1>
+          <h1 className="text-2xl font-bold text-slate-900">Create PaySim Account</h1>
           <p className="text-xs text-slate-500 mt-1">
-            Register to receive a simulated digital wallet credited with ₹10,000.00 demo balance
+            New accounts start with <strong>₹0.00</strong>. Select your primary simulated bank to receive a verified account number.
           </p>
         </div>
 
@@ -120,6 +131,29 @@ export default function RegisterPage() {
             </div>
           </div>
 
+          {/* Simulated Bank Selection */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1.5">
+              <Building2 className="w-4 h-4 text-indigo-600" />
+              <span>Select Simulated Bank</span>
+            </label>
+            <select
+              value={bankCode}
+              onChange={(e) => setBankCode(e.target.value as BankCode)}
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white font-medium text-slate-800"
+            >
+              {SIMULATED_BANKS.map((b) => (
+                <option key={b.code} value={b.code}>
+                  {b.name} (IFSC: {b.ifsc})
+                </option>
+              ))}
+            </select>
+            <p className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
+              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+              <span>Instant simulated KYC and unique account number verification</span>
+            </p>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">Password</label>
@@ -130,7 +164,7 @@ export default function RegisterPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="At least 6 chars"
+                  placeholder="••••••••"
                   className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                 />
               </div>
@@ -145,7 +179,7 @@ export default function RegisterPage() {
                   required
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Confirm password"
+                  placeholder="••••••••"
                   className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                 />
               </div>
@@ -154,7 +188,7 @@ export default function RegisterPage() {
 
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1">
-              Simulated 4-Digit Transaction PIN
+              Demo Transaction PIN (4-Digits)
             </label>
             <div className="relative">
               <KeyRound className="w-4 h-4 text-slate-400 absolute left-3 top-3.5" />
@@ -163,36 +197,29 @@ export default function RegisterPage() {
                 maxLength={4}
                 required
                 value={pin}
-                onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
-                placeholder="4-digit PIN (e.g. 1234)"
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm tracking-widest font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                onChange={(e) => setPin(e.target.value)}
+                placeholder="1234"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
               />
             </div>
             <p className="text-[11px] text-slate-400 mt-1">
-              Required to authorize simulated transfers and checkout transactions.
+              Used to authorize simulated payments and transfers. Default demo PIN: 1234.
             </p>
           </div>
 
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm rounded-xl shadow-md shadow-indigo-200 transition-all flex items-center justify-center gap-2"
+            className="w-full mt-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-sm shadow-md shadow-indigo-200 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
           >
-            {isLoading ? (
-              <span>Creating Wallet & Account...</span>
-            ) : (
-              <>
-                <span>Complete Registration</span>
-                <ArrowRight className="w-4 h-4" />
-              </>
-            )}
+            {isLoading ? 'Creating Simulated Account...' : 'Register & Link Bank'}
           </button>
         </form>
 
         <div className="mt-6 text-center text-xs text-slate-500">
-          Already registered?{' '}
-          <Link href="/login" className="text-indigo-600 font-bold hover:underline">
-            Sign In here
+          Already have an account?{' '}
+          <Link href="/login" className="font-bold text-indigo-600 hover:text-indigo-800">
+            Sign In
           </Link>
         </div>
       </div>

@@ -10,6 +10,8 @@ router.use(authenticate);
 
 router.post('/send', validateBody(sendMoneySchema), paymentController.sendMoney);
 router.post('/merchant', validateBody(payMerchantSchema), paymentController.payMerchant);
+router.post('/:id/reverse', paymentController.reversePayment);
+router.post('/:id/reconcile', paymentController.reconcilePayment);
 router.get('/merchants', paymentController.getMerchants);
 router.get('/:id', paymentController.getPaymentDetails);
 

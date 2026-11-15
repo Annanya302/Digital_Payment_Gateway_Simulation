@@ -7,9 +7,9 @@ import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
 
 export const metadata: Metadata = {
-  title: 'ApexPay - Digital Payment Gateway Simulation',
+  title: 'PaySim - Multi-Bank Payment Gateway & Transaction Processing Simulator',
   description:
-    'An educational simulation of a digital payment gateway showcasing transaction lifecycles, UPI switches, card processing, and atomic wallet management.',
+    'An educational simulation of a multi-bank payment gateway showcasing 11-stage transaction lifecycles, core banking switches (SBI, HDFC, ICICI, Axis, PNB), atomic ledgers, and real-time audit telemetry.',
 };
 
 export default function RootLayout({

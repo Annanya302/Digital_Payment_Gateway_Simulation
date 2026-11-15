@@ -1,10 +1,8 @@
 -- ==============================================================================
--- DIGITAL PAYMENT GATEWAY SIMULATION
--- PostgreSQL / Supabase Initial Schema Migration
--- Migration: 001_initial_schema.sql
+-- PAYSIM – MULTI-BANK PAYMENT GATEWAY AND TRANSACTION PROCESSING SIMULATOR
+-- PostgreSQL / Supabase Schema Migration: 001_initial_schema.sql
 -- ==============================================================================
 
--- Enable UUID extension if not already enabled
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- ------------------------------------------------------------------------------
@@ -28,12 +26,50 @@ CREATE INDEX IF NOT EXISTS idx_users_mobile ON users(mobile);
 CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
 
 -- ------------------------------------------------------------------------------
--- 2. WALLETS TABLE
+-- 2. BANKS TABLE (SIMULATED CORE BANKING SYSTEMS)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS banks (
+    bank_id VARCHAR(50) PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    code VARCHAR(10) NOT NULL UNIQUE CHECK (code IN ('SBI', 'HDFC', 'ICICI', 'AXIS', 'PNB')),
+    ifsc_prefix VARCHAR(10) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
+    health_status VARCHAR(20) NOT NULL DEFAULT 'ONLINE' CHECK (health_status IN ('ONLINE', 'DEGRADED', 'DOWN')),
+    latency_ms INTEGER NOT NULL DEFAULT 200,
+    logo_color VARCHAR(20) NOT NULL DEFAULT '#1e293b'
+);
+
+CREATE INDEX IF NOT EXISTS idx_banks_code ON banks(code);
+
+-- ------------------------------------------------------------------------------
+-- 3. BANK ACCOUNTS TABLE
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS bank_accounts (
+    account_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    bank_id VARCHAR(50) NOT NULL REFERENCES banks(bank_id),
+    bank_name VARCHAR(100) NOT NULL,
+    bank_code VARCHAR(10) NOT NULL,
+    account_number VARCHAR(50) NOT NULL UNIQUE,
+    ifsc_code VARCHAR(20) NOT NULL,
+    account_type VARCHAR(20) NOT NULL DEFAULT 'SAVINGS' CHECK (account_type IN ('SAVINGS', 'CURRENT')),
+    balance NUMERIC(14, 2) NOT NULL DEFAULT 0.00 CHECK (balance >= 0.00),
+    is_primary BOOLEAN NOT NULL DEFAULT TRUE,
+    verification_status VARCHAR(20) NOT NULL DEFAULT 'VERIFIED' CHECK (verification_status IN ('VERIFIED', 'PENDING')),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_bank_accounts_user ON bank_accounts(user_id);
+CREATE INDEX IF NOT EXISTS idx_bank_accounts_number ON bank_accounts(account_number);
+
+-- ------------------------------------------------------------------------------
+-- 4. WALLETS TABLE (New customer accounts start with ₹0.00)
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS wallets (
     wallet_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL UNIQUE REFERENCES users(user_id) ON DELETE CASCADE,
-    balance NUMERIC(14, 2) NOT NULL DEFAULT 10000.00 CHECK (balance >= 0.00),
+    balance NUMERIC(14, 2) NOT NULL DEFAULT 0.00 CHECK (balance >= 0.00),
     currency VARCHAR(10) NOT NULL DEFAULT 'INR',
     daily_limit NUMERIC(14, 2) NOT NULL DEFAULT 50000.00 CHECK (daily_limit >= 0.00),
     status VARCHAR(20) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'suspended', 'frozen')),
@@ -45,22 +81,22 @@ CREATE INDEX IF NOT EXISTS idx_wallets_user_id ON wallets(user_id);
 CREATE INDEX IF NOT EXISTS idx_wallets_status ON wallets(status);
 
 -- ------------------------------------------------------------------------------
--- 3. MERCHANTS TABLE
+-- 5. MERCHANTS TABLE
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS merchants (
     merchant_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(150) NOT NULL,
     upi_id VARCHAR(100) NOT NULL UNIQUE,
     category VARCHAR(50) NOT NULL DEFAULT 'E-Commerce',
+    bank_code VARCHAR(10) DEFAULT 'HDFC',
     status VARCHAR(20) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_merchants_upi ON merchants(upi_id);
-CREATE INDEX IF NOT EXISTS idx_merchants_status ON merchants(status);
 
 -- ------------------------------------------------------------------------------
--- 4. PAYMENTS TABLE
+-- 6. PAYMENTS TABLE
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS payments (
     payment_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -68,30 +104,36 @@ CREATE TABLE IF NOT EXISTS payments (
     receiver_id UUID REFERENCES users(user_id),
     merchant_id UUID REFERENCES merchants(merchant_id),
     amount NUMERIC(14, 2) NOT NULL CHECK (amount > 0.00),
-    payment_mode VARCHAR(20) NOT NULL CHECK (payment_mode IN ('WALLET', 'UPI', 'CARD')),
-    status VARCHAR(20) NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'SUCCESS', 'FAILED')),
+    payment_mode VARCHAR(20) NOT NULL CHECK (payment_mode IN ('WALLET', 'UPI', 'CARD', 'NET_BANKING')),
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'SUCCESS', 'FAILED', 'REVERSED')),
     idempotency_key VARCHAR(100) UNIQUE,
     reference_id VARCHAR(50) NOT NULL UNIQUE,
     failure_reason TEXT,
-    simulated_outcome VARCHAR(20) DEFAULT 'APPROVED',
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    simulated_outcome VARCHAR(30) DEFAULT 'APPROVED',
+    sender_bank_code VARCHAR(10),
+    receiver_bank_code VARCHAR(10),
+    transfer_type VARCHAR(20) DEFAULT 'INTER_BANK',
+    pipeline_stages JSONB DEFAULT '[]'::jsonb,
+    reversal_status VARCHAR(20) DEFAULT 'NONE',
+    reversal_reason TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_payments_sender ON payments(sender_id);
 CREATE INDEX IF NOT EXISTS idx_payments_receiver ON payments(receiver_id);
-CREATE INDEX IF NOT EXISTS idx_payments_merchant ON payments(merchant_id);
 CREATE INDEX IF NOT EXISTS idx_payments_status ON payments(status);
 CREATE INDEX IF NOT EXISTS idx_payments_reference ON payments(reference_id);
 CREATE INDEX IF NOT EXISTS idx_payments_created ON payments(created_at DESC);
 
 -- ------------------------------------------------------------------------------
--- 5. TRANSACTIONS TABLE (LEDGER)
+-- 7. TRANSACTIONS TABLE (LEDGER)
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS transactions (
     transaction_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     payment_id UUID NOT NULL REFERENCES payments(payment_id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES users(user_id),
-    type VARCHAR(20) NOT NULL CHECK (type IN ('DEBIT', 'CREDIT', 'REFUND')),
+    type VARCHAR(20) NOT NULL CHECK (type IN ('DEBIT', 'CREDIT', 'REFUND', 'REVERSAL')),
     amount NUMERIC(14, 2) NOT NULL CHECK (amount > 0.00),
     status VARCHAR(20) NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'SUCCESS', 'FAILED')),
     reference_id VARCHAR(50) NOT NULL,
@@ -102,10 +144,9 @@ CREATE TABLE IF NOT EXISTS transactions (
 CREATE INDEX IF NOT EXISTS idx_transactions_user ON transactions(user_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_payment ON transactions(payment_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_status ON transactions(status);
-CREATE INDEX IF NOT EXISTS idx_transactions_created ON transactions(created_at DESC);
 
 -- ------------------------------------------------------------------------------
--- 6. REFUNDS TABLE
+-- 8. REFUNDS TABLE
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS refunds (
     refund_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -119,12 +160,8 @@ CREATE TABLE IF NOT EXISTS refunds (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_refunds_payment ON refunds(original_payment_id);
-CREATE INDEX IF NOT EXISTS idx_refunds_user ON refunds(user_id);
-CREATE INDEX IF NOT EXISTS idx_refunds_status ON refunds(status);
-
 -- ------------------------------------------------------------------------------
--- 7. NOTIFICATIONS TABLE
+-- 9. NOTIFICATIONS TABLE
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS notifications (
     notification_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -138,19 +175,21 @@ CREATE TABLE IF NOT EXISTS notifications (
     sent_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id);
-CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(user_id, read_status);
-CREATE INDEX IF NOT EXISTS idx_notifications_sent ON notifications(sent_at DESC);
-
 -- ------------------------------------------------------------------------------
--- 8. ROW LEVEL SECURITY (RLS) POLICIES FOR SUPABASE
+-- 10. AUDIT LOGS TABLE
 -- ------------------------------------------------------------------------------
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE wallets ENABLE ROW LEVEL SECURITY;
-ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
-ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE refunds ENABLE ROW LEVEL SECURITY;
-ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+CREATE TABLE IF NOT EXISTS audit_logs (
+    log_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    event_type VARCHAR(50) NOT NULL,
+    actor_id VARCHAR(50) NOT NULL,
+    actor_name VARCHAR(100) NOT NULL,
+    actor_role VARCHAR(20) NOT NULL,
+    target_resource VARCHAR(100) NOT NULL,
+    action VARCHAR(100) NOT NULL,
+    details JSONB DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 
--- Note: In application layer, Supabase service_role key or backend connection bypasses RLS
--- for trusted processing, while anon/authenticated policies ensure data privacy.
+CREATE INDEX IF NOT EXISTS idx_audit_logs_event ON audit_logs(event_type);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_actor ON audit_logs(actor_id);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_created ON audit_logs(created_at DESC);

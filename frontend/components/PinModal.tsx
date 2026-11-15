@@ -8,7 +8,7 @@ interface PinModalProps {
   onClose: () => void;
   onSubmit: (pin: string) => void;
   amount: number;
-  paymentMode: string;
+  paymentMode?: string;
   recipientName: string;
   isLoading?: boolean;
   error?: string | null;
@@ -19,7 +19,7 @@ export default function PinModal({
   onClose,
   onSubmit,
   amount,
-  paymentMode,
+  paymentMode = 'WALLET',
   recipientName,
   isLoading = false,
   error = null,
@@ -65,11 +65,22 @@ export default function PinModal({
           <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-inner">
             <Lock className="w-6 h-6" />
           </div>
-          <h3 className="text-lg font-bold text-slate-900">Authorize Payment</h3>
+          <h3 className="text-lg font-bold text-slate-900">
+            {amount > 0 ? 'Authorize Payment' : 'Enter UPI / Bank PIN'}
+          </h3>
           <p className="text-xs text-slate-500 mt-1">
-            Paying <strong className="text-slate-900">₹{amount.toFixed(2)}</strong> to{' '}
-            <strong className="text-slate-900">{recipientName}</strong> via{' '}
-            <span className="uppercase font-semibold">{paymentMode}</span>
+            {amount > 0 ? (
+              <>
+                Paying <strong className="text-slate-900">₹{amount.toFixed(2)}</strong> to{' '}
+                <strong className="text-slate-900">{recipientName}</strong> via{' '}
+                <span className="uppercase font-semibold">{paymentMode}</span>
+              </>
+            ) : (
+              <>
+                Verify 4-digit PIN to reveal balance for{' '}
+                <strong className="text-slate-900">{recipientName}</strong>
+              </>
+            )}
           </p>
 
           {/* Masked PIN dots */}

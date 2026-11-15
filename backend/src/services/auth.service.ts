@@ -1,10 +1,12 @@
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '../config/database.js';
 import { config } from '../config/env.js';
-import { User, Wallet, SafeUser } from '../types/models.js';
+import { User, Wallet, SafeUser, BankCode, BankAccount } from '../types/models.js';
 import { hashPassword, comparePassword, hashPin, comparePin } from '../utils/password.js';
 import { generateToken } from '../utils/jwt.js';
 import { notificationService } from './notification.service.js';
+import { bankService } from './bank.service.js';
+import { auditService } from './audit.service.js';
 
 export class AuthService {
   public async register(data: {
@@ -13,7 +15,8 @@ export class AuthService {
     mobile: string;
     password: string;
     pin: string;
-  }): Promise<{ user: SafeUser; token: string; wallet: Wallet }> {
+    bankCode?: BankCode;
+  }): Promise<{ user: SafeUser; token: string; wallet?: Wallet; bankAccount?: BankAccount }> {
     // 1. Check duplicate email
     const existingEmail = db.findUserByEmail(data.email);
     if (existingEmail) {
@@ -47,11 +50,11 @@ export class AuthService {
 
     db.createUser(newUser);
 
-    // 5. Create default wallet
+    // 5. Create default customer wallet with ₹0 balance per specification
     const wallet: Wallet = {
       wallet_id: uuidv4(),
       user_id: userId,
-      balance: config.defaultWalletBalance,
+      balance: config.defaultWalletBalance, // Starts with ₹0.00
       currency: 'INR',
       daily_limit: config.maxDailyTransactionLimit,
       status: 'active',
@@ -61,15 +64,34 @@ export class AuthService {
 
     db.createWallet(wallet);
 
-    // 6. Generate welcome notification
+    // 6. Link selected simulated bank account
+    const selectedBankCode = data.bankCode || 'SBI';
+    const bankAccount = await bankService.linkBankAccount({
+      userId,
+      bankCode: selectedBankCode,
+      accountType: 'SAVINGS',
+      initialBalance: 0.0, // New bank accounts also start with ₹0.00
+    });
+
+    // 7. Welcome notification
     await notificationService.sendNotification({
       userId,
-      title: 'Welcome to Payment Gateway Simulation',
-      message: `Account created successfully! Your simulated wallet is credited with ₹${config.defaultWalletBalance.toLocaleString('en-IN')}.`,
+      title: 'Welcome to PaySim',
+      message: `Account created successfully with ₹0.00 initial balance. Your simulated bank account at ${bankAccount.bank_name} (${bankAccount.account_number}) is ready.`,
       type: 'SYSTEM',
     });
 
-    // 7. Generate JWT token
+    auditService.log({
+      eventType: 'AUTH_REGISTER',
+      actorId: newUser.user_id,
+      actorName: newUser.name,
+      actorRole: newUser.role,
+      targetResource: `USER:${newUser.user_id}`,
+      action: 'USER_REGISTERED',
+      details: { email: newUser.email, bankCode: selectedBankCode, balance: 0.0 },
+    });
+
+    // 8. Generate JWT token
     const token = generateToken({
       userId: newUser.user_id,
       email: newUser.email,
@@ -78,13 +100,13 @@ export class AuthService {
     });
 
     const { password_hash: _, pin_hash: __, ...safeUser } = newUser;
-    return { user: safeUser, token, wallet };
+    return { user: safeUser, token, wallet, bankAccount };
   }
 
   public async login(data: {
     email: string;
     password: string;
-  }): Promise<{ user: SafeUser; token: string; wallet?: Wallet }> {
+  }): Promise<{ user: SafeUser; token: string; wallet?: Wallet; bankAccount?: BankAccount }> {
     const user = db.findUserByEmail(data.email);
     if (!user) {
       throw { statusCode: 401, message: 'Invalid email or password' };
@@ -106,22 +128,41 @@ export class AuthService {
       name: user.name,
     });
 
-    const wallet = db.getWalletByUserId(user.user_id);
+    // Admin has NO wallet and NO personal bank account
+    const wallet = user.role === 'customer' ? db.getWalletByUserId(user.user_id) : undefined;
+    const bankAccount = user.role === 'customer' ? db.getPrimaryBankAccount(user.user_id) : undefined;
     const { password_hash: _, pin_hash: __, ...safeUser } = user;
 
-    return { user: safeUser, token, wallet };
+    auditService.log({
+      eventType: 'AUTH_LOGIN',
+      actorId: user.user_id,
+      actorName: user.name,
+      actorRole: user.role,
+      targetResource: `USER:${user.user_id}`,
+      action: 'USER_LOGIN',
+      details: { email: user.email, role: user.role },
+    });
+
+    return { user: safeUser, token, wallet, bankAccount };
   }
 
-  public async getProfile(userId: string): Promise<{ user: SafeUser; wallet?: Wallet }> {
+  public async getProfile(userId: string): Promise<{
+    user: SafeUser;
+    wallet?: Wallet;
+    bankAccount?: BankAccount;
+    bankAccounts: BankAccount[];
+  }> {
     const user = db.findUserById(userId);
     if (!user) {
       throw { statusCode: 404, message: 'User not found' };
     }
 
-    const wallet = db.getWalletByUserId(userId);
+    const wallet = user.role === 'customer' ? db.getWalletByUserId(userId) : undefined;
+    const bankAccounts = user.role === 'customer' ? db.getBankAccountsByUserId(userId) : [];
+    const bankAccount = bankAccounts.find((a) => a.is_primary) || bankAccounts[0];
     const { password_hash: _, pin_hash: __, ...safeUser } = user;
 
-    return { user: safeUser, wallet };
+    return { user: safeUser, wallet, bankAccount, bankAccounts };
   }
 
   public async changePin(userId: string, currentPin: string, newPin: string): Promise<boolean> {
@@ -143,6 +184,16 @@ export class AuthService {
       title: 'Security Alert: PIN Changed',
       message: 'Your simulated transaction PIN was updated successfully.',
       type: 'SYSTEM',
+    });
+
+    auditService.log({
+      eventType: 'PIN_CHANGED',
+      actorId: user.user_id,
+      actorName: user.name,
+      actorRole: user.role,
+      targetResource: `USER:${user.user_id}`,
+      action: 'CHANGE_PIN',
+      details: { timestamp: new Date().toISOString() },
     });
 
     return true;

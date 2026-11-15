@@ -6,6 +6,7 @@ import transactionRoutes from './transaction.routes.js';
 import refundRoutes from './refund.routes.js';
 import notificationRoutes from './notification.routes.js';
 import adminRoutes from './admin.routes.js';
+import bankRoutes from './bank.routes.js';
 
 const apiRouter = Router();
 
@@ -16,12 +17,13 @@ apiRouter.use('/transactions', transactionRoutes);
 apiRouter.use('/refunds', refundRoutes);
 apiRouter.use('/notifications', notificationRoutes);
 apiRouter.use('/admin', adminRoutes);
+apiRouter.use('/banks', bankRoutes);
 
 // Simulator info & health endpoint
 apiRouter.get('/health', (req, res) => {
   res.status(200).json({
     status: 'ONLINE',
-    service: 'Digital Payment Gateway Simulation Backend',
+    service: 'PaySim Multi-Bank Payment Gateway Backend',
     mode: 'SIMULATION_ONLY',
     timestamp: new Date().toISOString(),
   });

@@ -7,26 +7,31 @@ import {
   Wallet,
   Smartphone,
   CreditCard,
+  Building2,
   UserCheck,
   AlertCircle,
   ArrowRight,
   ShieldCheck,
+  GitBranch,
 } from 'lucide-react';
 import { useAuth } from '../../lib/auth-context';
 import { api } from '../../lib/api';
-import { PaymentMode, SimulatorOutcome, PaymentReceipt } from '../../lib/types';
+import { PaymentMode, SimulatorOutcome, PaymentReceipt, BankCode } from '../../lib/types';
 import SimulatorControls from '../../components/SimulatorControls';
 import PinModal from '../../components/PinModal';
 import ReceiptModal from '../../components/ReceiptModal';
 
 export default function SendMoneyPage() {
-  const { user, wallet, refreshProfile } = useAuth();
+  const { user, wallet, bankAccount, refreshProfile } = useAuth();
   const router = useRouter();
 
   const [receiverIdentifier, setReceiverIdentifier] = useState('priya@example.com');
   const [amount, setAmount] = useState('1500');
   const [paymentMode, setPaymentMode] = useState<PaymentMode>('WALLET');
   const [simulatedOutcome, setSimulatedOutcome] = useState<SimulatorOutcome | 'AUTO'>('AUTO');
+  const [selectedBank, setSelectedBank] = useState<BankCode>(
+    (bankAccount?.bank_code as BankCode) || 'HDFC'
+  );
 
   // Card details if mode === 'CARD'
   const [cardNumber, setCardNumber] = useState('4111 2222 3333 4444');
@@ -43,6 +48,11 @@ export default function SendMoneyPage() {
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
 
   if (!user) return null;
+
+  if (user.role === 'admin') {
+    router.push('/admin');
+    return null;
+  }
 
   const handleInitiate = (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,6 +75,11 @@ export default function SendMoneyPage() {
       return;
     }
 
+    if (paymentMode === 'NET_BANKING' && bankAccount && amt > bankAccount.balance) {
+      setPageError(`Insufficient bank balance. You have ₹${bankAccount.balance.toFixed(2)} in ${bankAccount.bank_name}`);
+      return;
+    }
+
     if (receiverIdentifier.trim().toLowerCase() === user.email.toLowerCase()) {
       setPageError('You cannot transfer money to your own email address.');
       return;
@@ -83,6 +98,7 @@ export default function SendMoneyPage() {
         amount: parseFloat(amount),
         paymentMode,
         pin,
+        senderBankCode: selectedBank,
         simulatedOutcome: simulatedOutcome === 'AUTO' ? undefined : simulatedOutcome,
       };
 
@@ -114,9 +130,9 @@ export default function SendMoneyPage() {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-black text-slate-900 tracking-tight">Send Money (P2P)</h1>
+        <h1 className="text-2xl font-black text-slate-900 tracking-tight">Send Money (Multi-Bank P2P)</h1>
         <p className="text-xs text-slate-500 mt-1">
-          Initiate a simulated transfer to any registered user using Wallet, UPI, or Card
+          Simulated fund transfer via Core Banking Rails, NPCI UPI, or Net Banking
         </p>
       </div>
 
@@ -149,197 +165,183 @@ export default function SendMoneyPage() {
               placeholder="e.g. priya@example.com or +919876543212"
               className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
             />
-
-            {/* Quick recipient pills */}
-            <div className="flex items-center gap-2 mt-2 flex-wrap text-xs text-slate-500">
-              <span className="text-[11px] font-semibold text-slate-400">Quick Select:</span>
-              <button
-                type="button"
-                onClick={() => setReceiverIdentifier('priya@example.com')}
-                className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700 font-medium text-[11px] transition-colors"
-              >
-                Priya Sharma (priya@example.com)
-              </button>
-              <button
-                type="button"
-                onClick={() => setReceiverIdentifier('rohit@example.com')}
-                className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700 font-medium text-[11px] transition-colors"
-              >
-                Rohit Verma (rohit@example.com)
-              </button>
-            </div>
+            <p className="text-[11px] text-slate-400 mt-1">
+              Demo recipients: <code className="text-indigo-600 font-semibold cursor-pointer" onClick={() => setReceiverIdentifier('priya@example.com')}>priya@example.com</code> (SBI),{' '}
+              <code className="text-indigo-600 font-semibold cursor-pointer" onClick={() => setReceiverIdentifier('rohit@example.com')}>rohit@example.com</code> (ICICI)
+            </p>
           </div>
 
-          {/* Amount Field */}
+          {/* Amount */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">
-              Amount to Transfer (₹)
-            </label>
+            <label className="block text-xs font-bold text-slate-700 mb-1">Amount (₹)</label>
             <div className="relative">
-              <span className="absolute left-4 top-3 text-lg font-bold text-slate-400">₹</span>
+              <span className="absolute left-4 top-2.5 text-slate-400 font-bold">₹</span>
               <input
                 type="number"
-                min="1"
-                max="25000"
                 step="0.01"
+                min="0.01"
+                max="25000"
                 required
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="1000.00"
-                className="w-full pl-9 pr-4 py-3 rounded-xl border border-slate-200 text-xl font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                className="w-full pl-8 pr-4 py-2.5 rounded-xl border border-slate-200 text-base font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
               />
             </div>
-
-            {/* Quick amount shortcuts */}
-            <div className="grid grid-cols-4 gap-2 mt-2">
-              {['500', '1000', '2500', '5000'].map((amt) => (
-                <button
-                  key={amt}
-                  type="button"
-                  onClick={() => setAmount(amt)}
-                  className="py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 transition-colors"
-                >
-                  ₹{amt}
-                </button>
-              ))}
-            </div>
+            <p className="text-[11px] text-slate-400 mt-1">
+              Max single transaction: ₹25,000.00 • Test triggers: ending in <code className="text-slate-600">.02</code> (Decline), <code className="text-slate-600">.03</code> (Timeout), <code className="text-slate-600">.04</code> (Bank Down)
+            </p>
           </div>
 
-          {/* Payment Method Selector */}
+          {/* Issuing Bank Selection */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-2">
-              Select Payment Method
+            <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1.5">
+              <Building2 className="w-4 h-4 text-indigo-600" />
+              <span>Issuing / Debiting Bank</span>
             </label>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <select
+              value={selectedBank}
+              onChange={(e) => setSelectedBank(e.target.value as BankCode)}
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 bg-white font-medium text-slate-800"
+            >
+              <option value="HDFC">HDFC Bank (Primary Linked)</option>
+              <option value="SBI">State Bank of India (SBI)</option>
+              <option value="ICICI">ICICI Bank</option>
+              <option value="AXIS">Axis Bank</option>
+              <option value="PNB">Punjab National Bank (PNB)</option>
+            </select>
+          </div>
+
+          {/* Payment Mode Selection */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-2">Select Payment Rail</label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <button
                 type="button"
                 onClick={() => setPaymentMode('WALLET')}
-                className={`p-3.5 rounded-2xl border text-left flex flex-col justify-between transition-all ${
+                className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center gap-1.5 ${
                   paymentMode === 'WALLET'
-                    ? 'border-indigo-600 bg-indigo-50/50 shadow-sm'
-                    : 'border-slate-200 hover:bg-slate-50'
+                    ? 'border-indigo-600 bg-indigo-50/50 text-indigo-900 font-bold shadow-sm'
+                    : 'border-slate-200 hover:bg-slate-50 text-slate-600'
                 }`}
               >
-                <div className="flex items-center justify-between mb-2">
-                  <Wallet className={`w-5 h-5 ${paymentMode === 'WALLET' ? 'text-indigo-600' : 'text-slate-400'}`} />
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-white text-slate-700 border border-slate-200">
-                    Instant
-                  </span>
-                </div>
-                <div>
-                  <p className="font-bold text-xs text-slate-900">ApexPay Wallet</p>
-                  <p className="text-[11px] text-slate-500">₹{(wallet?.balance ?? 0).toFixed(2)} available</p>
-                </div>
+                <Wallet className="w-5 h-5 text-indigo-600" />
+                <span className="text-xs">Wallet</span>
+                <span className="text-[10px] text-slate-400">₹{(wallet?.balance ?? 0).toFixed(0)}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPaymentMode('NET_BANKING')}
+                className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center gap-1.5 ${
+                  paymentMode === 'NET_BANKING'
+                    ? 'border-sky-600 bg-sky-50/50 text-sky-900 font-bold shadow-sm'
+                    : 'border-slate-200 hover:bg-slate-50 text-slate-600'
+                }`}
+              >
+                <Building2 className="w-5 h-5 text-sky-600" />
+                <span className="text-xs">Net Banking</span>
+                <span className="text-[10px] text-slate-400">Direct A/C</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setPaymentMode('UPI')}
-                className={`p-3.5 rounded-2xl border text-left flex flex-col justify-between transition-all ${
+                className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center gap-1.5 ${
                   paymentMode === 'UPI'
-                    ? 'border-indigo-600 bg-indigo-50/50 shadow-sm'
-                    : 'border-slate-200 hover:bg-slate-50'
+                    ? 'border-emerald-600 bg-emerald-50/50 text-emerald-900 font-bold shadow-sm'
+                    : 'border-slate-200 hover:bg-slate-50 text-slate-600'
                 }`}
               >
-                <div className="flex items-center justify-between mb-2">
-                  <Smartphone className={`w-5 h-5 ${paymentMode === 'UPI' ? 'text-indigo-600' : 'text-slate-400'}`} />
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-white text-slate-700 border border-slate-200">
-                    UPI 2.0
-                  </span>
-                </div>
-                <div>
-                  <p className="font-bold text-xs text-slate-900">Simulated UPI</p>
-                  <p className="text-[11px] text-slate-500">NPCI Simulator Rail</p>
-                </div>
+                <Smartphone className="w-5 h-5 text-emerald-600" />
+                <span className="text-xs">UPI 2.0</span>
+                <span className="text-[10px] text-slate-400">NPCI Switch</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setPaymentMode('CARD')}
-                className={`p-3.5 rounded-2xl border text-left flex flex-col justify-between transition-all ${
+                className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center gap-1.5 ${
                   paymentMode === 'CARD'
-                    ? 'border-indigo-600 bg-indigo-50/50 shadow-sm'
-                    : 'border-slate-200 hover:bg-slate-50'
+                    ? 'border-amber-600 bg-amber-50/50 text-amber-900 font-bold shadow-sm'
+                    : 'border-slate-200 hover:bg-slate-50 text-slate-600'
                 }`}
               >
-                <div className="flex items-center justify-between mb-2">
-                  <CreditCard className={`w-5 h-5 ${paymentMode === 'CARD' ? 'text-indigo-600' : 'text-slate-400'}`} />
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-white text-slate-700 border border-slate-200">
-                    Debit/Credit
-                  </span>
-                </div>
-                <div>
-                  <p className="font-bold text-xs text-slate-900">Simulated Card</p>
-                  <p className="text-[11px] text-slate-500">Visa / RuPay Rail</p>
-                </div>
+                <CreditCard className="w-5 h-5 text-amber-600" />
+                <span className="text-xs">Card</span>
+                <span className="text-[10px] text-slate-400">Visa / RuPay</span>
               </button>
             </div>
           </div>
 
-          {/* Card Mock Inputs if CARD mode */}
+          {/* Card Details if Mode === CARD */}
           {paymentMode === 'CARD' && (
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
-              <p className="text-xs font-bold text-slate-700">Test Card Details (Sandbox)</p>
+              <span className="text-xs font-bold text-slate-700 block">Simulated Card Details</span>
               <div>
+                <label className="block text-[11px] font-semibold text-slate-500 mb-1">Card Number</label>
                 <input
                   type="text"
                   value={cardNumber}
                   onChange={(e) => setCardNumber(e.target.value)}
                   placeholder="4111 2222 3333 4444"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-mono font-bold"
+                  className="w-full px-3 py-2 bg-white rounded-xl border border-slate-200 text-xs font-mono"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <input
-                  type="text"
-                  value={cardExpiry}
-                  onChange={(e) => setCardExpiry(e.target.value)}
-                  placeholder="MM/YY"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-mono"
-                />
-                <input
-                  type="password"
-                  maxLength={3}
-                  value={cardCvv}
-                  onChange={(e) => setCardCvv(e.target.value)}
-                  placeholder="CVV"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-mono"
-                />
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-500 mb-1">Expiry</label>
+                  <input
+                    type="text"
+                    value={cardExpiry}
+                    onChange={(e) => setCardExpiry(e.target.value)}
+                    placeholder="MM/YY"
+                    className="w-full px-3 py-2 bg-white rounded-xl border border-slate-200 text-xs font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-500 mb-1">CVV</label>
+                  <input
+                    type="password"
+                    maxLength={3}
+                    value={cardCvv}
+                    onChange={(e) => setCardCvv(e.target.value)}
+                    placeholder="123"
+                    className="w-full px-3 py-2 bg-white rounded-xl border border-slate-200 text-xs font-mono"
+                  />
+                </div>
               </div>
             </div>
           )}
 
-          {/* Submit Action */}
+          {/* Submit Button */}
           <button
             type="submit"
-            className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm rounded-2xl shadow-lg shadow-indigo-200 transition-all flex items-center justify-center gap-2"
+            className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-sm shadow-md shadow-indigo-200 transition-all flex items-center justify-center gap-2"
           >
-            <span>Proceed to PIN Verification</span>
+            <span>Proceed to PIN Authentication</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>
       </div>
 
-      {/* Simulated PIN Dialog */}
+      {/* PIN Authentication Modal */}
       <PinModal
         isOpen={isPinModalOpen}
         onClose={() => setIsPinModalOpen(false)}
         onSubmit={handlePinSubmit}
+        isLoading={isAuthorizing}
+        error={pinError}
         amount={parseFloat(amount) || 0}
         paymentMode={paymentMode}
         recipientName={receiverIdentifier}
-        isLoading={isAuthorizing}
-        error={pinError}
       />
 
-      {/* Printable Receipt Modal */}
+      {/* Printable Receipt & 11-Stage Timeline Modal */}
       <ReceiptModal
         isOpen={isReceiptOpen}
         onClose={() => setIsReceiptOpen(false)}
         receipt={receipt}
-        onRequestRefund={(paymentId) => {
-          router.push(`/refunds?paymentId=${paymentId}`);
-        }}
       />
     </div>
   );
