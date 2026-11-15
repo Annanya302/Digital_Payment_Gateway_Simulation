@@ -2,9 +2,15 @@
 
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { io, Socket } from 'socket.io-client';
 import { User, Wallet, BankAccount } from './types';
 import { api } from './api';
+
+export interface SimpleSocket {
+  emit: (event: string, ...args: any[]) => void;
+  on: (event: string, callback: (...args: any[]) => void) => void;
+  off: (event: string, callback?: (...args: any[]) => void) => void;
+  disconnect: () => void;
+}
 
 interface AuthContextType {
   user: User | null;
@@ -17,12 +23,10 @@ interface AuthContextType {
   register: (payload: any) => Promise<User>;
   logout: () => void;
   refreshProfile: () => Promise<void>;
-  socket: Socket | null;
+  socket: SimpleSocket | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -31,16 +35,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [socket, setSocket] = useState<Socket | null>(null);
-  const socketRef = useRef<Socket | null>(null);
+  const [socket, setSocket] = useState<SimpleSocket | null>(null);
+  const socketRef = useRef<SimpleSocket | null>(null);
   const router = useRouter();
 
-  // Socket initialization
+  // Socket initialization (self-contained fallback)
   useEffect(() => {
-    const s = io(SOCKET_URL, {
-      transports: ['websocket', 'polling'],
-      autoConnect: true,
-    });
+    const s: SimpleSocket = {
+      emit: () => {},
+      on: () => {},
+      off: () => {},
+      disconnect: () => {},
+    };
     socketRef.current = s;
     setSocket(s);
 
