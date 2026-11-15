@@ -15,6 +15,74 @@ body {
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
 
+/* Custom telemetry scrollbar */
+.telemetry-scroll::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.telemetry-scroll::-webkit-scrollbar-track {
+  background: #090d16;
+  border-radius: 4px;
+}
+.telemetry-scroll::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 4px;
+}
+.telemetry-scroll::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+/* Animated neon beam line */
+.pipeline-beam {
+  position: relative;
+  overflow: hidden;
+}
+.pipeline-beam::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.9), #a5b4fc, transparent);
+  animation: flow-right 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.pipeline-beam-vertical {
+  position: relative;
+  overflow: hidden;
+}
+.pipeline-beam-vertical::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(180deg, transparent, rgba(99, 102, 241, 0.9), #a5b4fc, transparent);
+  animation: flow-vertical 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Glassmorphism panel styling */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.glass-panel-dark {
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(51, 65, 85, 0.5);
+}
+
+/* Modal animation */
+.animate-fade-in {
+  animation: fade-in 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 @media print {
   body {
     background: white !important;
