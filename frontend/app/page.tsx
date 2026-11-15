@@ -30,22 +30,14 @@ export default function LandingPage() {
         </div>
 
         <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight leading-tight">
-          PaySim <br className="hidden sm:inline" />
+          ApexPay <br className="hidden sm:inline" />
           <span className="text-indigo-600">Payment Gateway Platform</span>
         </h1>
 
         <p className="max-w-2xl mx-auto text-base sm:text-lg text-slate-600 leading-relaxed">
-          An enterprise-grade full-stack banking & payment gateway simulation demonstrating how digital transactions are
-          initiated, authenticated via demo PIN, routed across multi-bank switches (SBI, HDFC, ICICI, Axis, PNB), atomically settled, and audited in real-time.
+          Interactive full-stack payment gateway simulator demonstrating transaction routing,
+          PIN cryptography, simulated banking switches (UPI & Cards), and atomic double-entry settlements.
         </p>
-
-        {/* Boundary Notice */}
-        <div className="max-w-xl mx-auto p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs sm:text-sm flex items-start gap-3 text-left shadow-sm">
-          <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-          <div>
-            <strong className="font-bold">Strict Educational Simulation:</strong> This environment connects to simulated core-banking systems and NPCI/Card rails. No real currency is transferred, and no real credit card or bank credentials are ever required. All accounts start with ₹0.00.
-          </div>
-        </div>
 
         {/* Action CTAs */}
         <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
@@ -53,14 +45,14 @@ export default function LandingPage() {
             href="/login"
             className="px-6 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm rounded-2xl shadow-lg shadow-indigo-200 transition-all flex items-center gap-2"
           >
-            <span>Launch Simulation Dashboard</span>
+            <span>Launch Dashboard</span>
             <ArrowRight className="w-4 h-4" />
           </Link>
           <Link
             href="/register"
             className="px-6 py-3.5 bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 font-bold text-sm rounded-2xl shadow-sm transition-all"
           >
-            Register New Account (₹0 Demo)
+            Create Test Account
           </Link>
         </div>
       </section>
